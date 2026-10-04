@@ -26,6 +26,13 @@
         ::-webkit-scrollbar {
             display: none;
         }
+        .step-container {
+            display: none;
+        }
+        .step-container.active {
+            display: flex;
+            animation: fadeIn 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body class="text-gray-800 h-screen w-screen overflow-hidden flex flex-col">
@@ -36,7 +43,7 @@
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-grow overflow-y-auto p-4 flex flex-col items-center justify-center relative">
+    <main class="flex-grow overflow-hidden p-4 flex flex-col items-center justify-center relative h-full">
         
         <!-- SCREEN 1: UPLOAD -->
         <div id="screen-upload" class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 text-center fade-in flex flex-col items-center">
@@ -48,133 +55,90 @@
             <h2 class="text-xl font-semibold mb-2">Excel файл оруулах</h2>
             <p class="text-sm text-gray-500 mb-6">2 баганатай .xlsx эсвэл .csv файлаа энд оруулна уу.</p>
             
-            <label class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl cursor-pointer transition-colors shadow-md text-center">
+            <label class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl cursor-pointer transition-colors shadow-md text-center flex items-center justify-center">
                 <span>Файл сонгох</span>
                 <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="hidden">
             </label>
         </div>
 
-        <!-- SCREEN 2: CLASSIFY - STEP 1 (Useful/Not Useful) -->
-        <div id="screen-classify-step1" class="w-full max-w-md h-full hidden flex-col fade-in">
+        <!-- SCREEN 2: CLASSIFY AREA -->
+        <div id="screen-classify" class="w-full max-w-md h-full hidden flex-col">
             <!-- Progress Bar -->
-            <div class="mb-4">
+            <div class="mb-3 flex-shrink-0">
                 <div class="flex justify-between text-sm text-gray-500 font-medium mb-1">
                     <span>Явц</span>
-                    <span class="progress-text">0 / 0</span>
+                    <span id="progress-text">0 / 0</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div class="progress-bar bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
                 </div>
             </div>
 
-            <!-- Data Card -->
-            <div class="bg-white rounded-2xl shadow-lg p-5 mb-4 flex-grow flex flex-col justify-center border border-gray-100 overflow-y-auto">
-                <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Багана 1 (Хэв шинж)</div>
-                <div class="col1-text text-lg font-medium text-gray-900 mb-4 break-words">...</div>
-                
-                <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 border-t pt-4">Багана 2 (Стандарт)</div>
-                <div class="col2-text text-base text-gray-700 break-words">...</div>
+            <!-- Data Card (Always visible during classification) -->
+            <div class="bg-white rounded-2xl shadow-md p-4 mb-3 flex-shrink min-h-[120px] max-h-[40vh] flex flex-col border border-gray-100 overflow-hidden">
+                <div class="overflow-y-auto flex-grow">
+                    <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1">Багана 1</div>
+                    <div id="col1-text" class="text-base font-semibold text-gray-900 mb-3 break-words leading-tight">...</div>
+                    
+                    <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1 border-t pt-3">Багана 2</div>
+                    <div id="col2-text" class="text-sm text-gray-700 break-words leading-tight">...</div>
+                </div>
             </div>
-
-            <div class="text-center mb-2 font-semibold text-gray-700">Энэ мэдээлэл хэрэгтэй юу?</div>
             
-            <!-- Category Buttons -->
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <button onclick="handleStep1('Хэрэгтэй')" class="bg-blue-500 hover:bg-blue-600 text-white py-4 px-2 rounded-xl shadow-sm text-lg font-bold transition-transform active:scale-95 flex items-center justify-center">
-                    Хэрэгтэй
-                </button>
-                <button onclick="handleStep1('Хэрэггүй')" class="bg-red-400 hover:bg-red-500 text-white py-4 px-2 rounded-xl shadow-sm text-lg font-bold transition-transform active:scale-95 flex items-center justify-center">
-                    Хэрэггүй
-                </button>
-            </div>
-
-            <!-- Utility Buttons -->
-            <div class="flex gap-3 mt-auto flex-shrink-0">
-                <button onclick="undo()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-medium transition-colors">
-                    &larr; Буцах
-                </button>
-                <button onclick="handleStep1('Алгассан')" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-medium transition-colors">
-                    Алгасах &rarr;
-                </button>
-            </div>
-        </div>
-
-        <!-- SCREEN 2: CLASSIFY - STEP 2 (4 Categories) -->
-        <div id="screen-classify-step2" class="w-full max-w-md h-full hidden flex-col fade-in">
-            <!-- Progress Bar -->
-            <div class="mb-4">
-                <div class="flex justify-between text-sm text-gray-500 font-medium mb-1">
-                    <span>Явц</span>
-                    <span class="progress-text">0 / 0</span>
+            <!-- Dynamic Actions Area -->
+            <div class="flex-grow flex flex-col justify-end overflow-hidden">
+                
+                <!-- STEP 1: RELEVANCE CHECK -->
+                <div id="step-relevance" class="step-container flex-col gap-3 w-full h-full justify-center">
+                    <div class="text-center font-medium text-gray-600 mb-2">Энэ мэдээлэл хамааралтай юу?</div>
+                    <button onclick="handleRelevance(true)" class="w-full bg-green-500 hover:bg-green-600 text-white py-4 rounded-xl shadow-sm text-lg font-bold transition-transform active:scale-95 flex items-center justify-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Тийм, хамаарна
+                    </button>
+                    <button onclick="handleRelevance(false)" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-4 rounded-xl shadow-sm text-lg font-bold transition-transform active:scale-95 flex items-center justify-center gap-2 mt-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        Үгүй, хамаарахгүй (Алгасах)
+                    </button>
+                    <button onclick="undo()" class="w-full bg-white border border-gray-300 text-gray-600 py-3 rounded-xl font-medium mt-auto mb-1">
+                        &larr; Өмнөх мөр рүү буцах
+                    </button>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div class="progress-bar bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+
+                <!-- STEP 2: MAIN CATEGORY -->
+                <div id="step-main" class="step-container flex-col h-full">
+                    <div class="text-center font-medium text-gray-600 mb-2 flex-shrink-0">Хэв шинжийг сонгоно уу:</div>
+                    <div class="grid grid-cols-2 gap-3 flex-shrink-0">
+                        <button onclick="handleMainCategory('1. Хэрэгцээг таних')" class="bg-[#e6f0ff] hover:bg-[#d0e3ff] text-[#1e40af] border-2 border-[#bfdbfe] py-4 px-2 rounded-xl shadow-sm text-sm font-bold transition-transform active:scale-95 flex items-center justify-center text-center h-20">
+                            1. Хэрэгцээг<br>таних
+                        </button>
+                        <button onclick="handleMainCategory('2. Хүлээлтийг таних')" class="bg-[#f3e8ff] hover:bg-[#e9d5ff] text-[#6b21a8] border-2 border-[#d8b4fe] py-4 px-2 rounded-xl shadow-sm text-sm font-bold transition-transform active:scale-95 flex items-center justify-center text-center h-20">
+                            2. Хүлээлтийг<br>таних
+                        </button>
+                        <button onclick="handleMainCategory('3. Хүлээлтийг удирдах')" class="bg-[#ffedd5] hover:bg-[#fed7aa] text-[#9a3412] border-2 border-[#fdba74] py-4 px-2 rounded-xl shadow-sm text-sm font-bold transition-transform active:scale-95 flex items-center justify-center text-center h-20">
+                            3. Хүлээлтийг<br>удирдах
+                        </button>
+                        <button onclick="handleMainCategory('4. Хэрэгцээнд нийцүүлэх')" class="bg-[#dcfce7] hover:bg-[#bbf7d0] text-[#166534] border-2 border-[#86efac] py-4 px-2 rounded-xl shadow-sm text-sm font-bold transition-transform active:scale-95 flex items-center justify-center text-center h-20">
+                            4. Хэрэгцээнд<br>нийцүүлэх
+                        </button>
+                    </div>
+                    <button onclick="goBackToStep('relevance')" class="w-full bg-white border border-gray-300 text-gray-600 py-3 rounded-xl font-medium mt-auto mb-1">
+                        &larr; Буцах
+                    </button>
                 </div>
-            </div>
 
-            <!-- Data Card (Smaller version for context) -->
-            <div class="bg-white rounded-xl p-4 mb-4 flex-shrink-0 border border-gray-200 max-h-48 overflow-y-auto shadow-sm">
-                <div class="col1-text text-sm font-medium text-gray-900 mb-2 break-words">...</div>
-                <div class="col2-text text-sm text-gray-700 break-words">...</div>
-            </div>
-
-            <div class="text-center mb-2 font-semibold text-gray-700">Үндсэн 4 ангилал:</div>
-
-            <!-- Category Buttons Matching User Image Colors -->
-            <div class="flex flex-col gap-3 flex-grow justify-center">
-                <button onclick="handleStep2('Хэрэгцээг таних')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 border-2 border-blue-200 py-4 px-4 rounded-xl shadow-sm text-base font-bold transition-transform active:scale-95">
-                    1. Хэрэгцээг таних
-                </button>
-                <button onclick="handleStep2('Хүлээлтийг таних')" class="bg-purple-100 hover:bg-purple-200 text-purple-800 border-2 border-purple-200 py-4 px-4 rounded-xl shadow-sm text-base font-bold transition-transform active:scale-95">
-                    2. Хүлээлтийг таних
-                </button>
-                <button onclick="handleStep2('Хүлээлтийг удирдах')" class="bg-orange-100 hover:bg-orange-200 text-orange-800 border-2 border-orange-200 py-4 px-4 rounded-xl shadow-sm text-base font-bold transition-transform active:scale-95">
-                    3. Хүлээлтийг удирдах
-                </button>
-                <button onclick="handleStep2('Хэрэгцээнд нийцүүлэх')" class="bg-green-100 hover:bg-green-200 text-green-800 border-2 border-green-200 py-4 px-4 rounded-xl shadow-sm text-base font-bold transition-transform active:scale-95">
-                    4. Хэрэгцээнд нийцүүлэх
-                </button>
-            </div>
-
-            <!-- Utility Buttons -->
-            <div class="flex gap-3 mt-4 flex-shrink-0">
-                <button onclick="backToStep1()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-medium transition-colors">
-                    &larr; Буцах
-                </button>
-            </div>
-        </div>
-
-        <!-- SCREEN 2: CLASSIFY - STEP 3 (Dynamic Subcategories) -->
-        <div id="screen-classify-step3" class="w-full max-w-md h-full hidden flex-col fade-in">
-            <!-- Progress Bar -->
-            <div class="mb-4">
-                <div class="flex justify-between text-sm text-gray-500 font-medium mb-1">
-                    <span>Явц</span>
-                    <span class="progress-text">0 / 0</span>
+                <!-- STEP 3: SUB CATEGORY -->
+                <div id="step-sub" class="step-container flex-col h-full overflow-hidden">
+                    <div id="sub-title-display" class="text-center font-bold text-blue-700 mb-2 flex-shrink-0 text-sm">Дэд ангилал</div>
+                    
+                    <div id="dynamic-sub-buttons" class="flex flex-col gap-2 overflow-y-auto flex-grow pb-2">
+                        <!-- Buttons injected via JS -->
+                    </div>
+                    
+                    <button onclick="goBackToStep('main')" class="w-full bg-white border border-gray-300 text-gray-600 py-3 rounded-xl font-medium mt-2 flex-shrink-0 mb-1">
+                        &larr; Буцах
+                    </button>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div class="progress-bar bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
-                </div>
-            </div>
 
-            <!-- Data Card (Smaller version for context) -->
-            <div class="bg-white rounded-xl p-4 mb-4 flex-shrink-0 border border-gray-200 max-h-48 overflow-y-auto shadow-sm">
-                <div class="col1-text text-sm font-medium text-gray-900 mb-2 break-words">...</div>
-                <div class="col2-text text-sm text-gray-700 break-words">...</div>
-            </div>
-
-            <div class="text-center mb-2 font-semibold text-gray-700">Нарийвчилсан дэд ангилал:</div>
-
-            <!-- Dynamic Category Buttons -->
-            <div id="step3-dynamic-buttons" class="flex flex-col gap-3 flex-grow justify-center overflow-y-auto">
-                <!-- Buttons will be generated here dynamically based on Step 2 -->
-            </div>
-
-            <!-- Utility Buttons -->
-            <div class="flex gap-3 mt-4 flex-shrink-0">
-                <button onclick="backToStep2()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-medium transition-colors">
-                    &larr; Буцах
-                </button>
             </div>
         </div>
 
@@ -201,61 +165,62 @@
 
     <script>
         // State variables
-        let excelData = []; // Array of Arrays to hold raw excel data
-        let resultData = []; // Array to hold processed data
+        let excelData = []; 
+        let resultData = []; 
         let currentIndex = 0;
         let originalFileName = "classified_data";
         
-        // Temporary state for the current item being classified
         let currentItemState = {
-            isUseful: "",
-            category4: "",
-            commSystem: ""
+            isRelevant: "",
+            mainCategory: "",
+            subCategory: ""
         };
 
-        // Дэд ангиллын тохиргоо (Үүнийг өөрийн шалгуурт тааруулан өөрчилнө үү)
-        const subCategories = {
-            'Хэрэгцээг таних': ['Асуудлыг нь оношлох', 'Нэмэлт мэдээлэл цуглуулах', 'Санал гомдол сонсох'],
-            'Хүлээлтийг таних': ['Хүссэн үр дүнг тодруулах', 'Хугацааны шаардлага мэдэх', 'Төсөв, нөөцийг тодорхойлох'],
-            'Хүлээлтийг удирдах': ['Боломжгүйг тайлбарлах', 'Явцын мэдээлэл өгөх', 'Өөр хувилбар санал болгох'],
-            'Хэрэгцээнд нийцүүлэх': ['Үйлчилгээг бодитоор үзүүлэх', 'Үр дүнг тайлагнах', 'Сэтгэл ханамж шалгах']
+        // Дэлгэрэнгүй дэд ангиллын мэдээлэл (Таны оруулж өгсөн дата)
+        const subCategoriesData = {
+            '1. Хэрэгцээг таних': [
+                { title: 'Мэдээлэл цуглуулах', desc: 'Үр дүнгийн хангагдсан байвал зохих түвшний талаарх хэрэгцээт дата, мэдээллийг бүрдүүлэх.' },
+                { title: 'Урьдчилан таамаглах', desc: 'Бүтээгдэхүүн үйлчилгээг худалдан авснаар бий болох үр дүнг урьдчилан харах.' },
+                { title: 'Тооцоолох', desc: 'Хүлээгдэж буй үр дүнгийн зохих түвшинг бодитоор тооцоолж, хэмжигдэхүйц байдлаар үнэлэх.' }
+            ],
+            '2. Хүлээлтийг таних': [
+                { title: 'Мэдээлэл цуглуулах', desc: 'Хэрэглэгчийн сэтгэхүй, хандлагад үүсэх төсөөллийн талаарх мэдээллийг судлах.' },
+                { title: 'Урьдчилан таамаглах', desc: 'Бүтээгдэхүүн үйлчилгээ худалдан авснаар хэрэглэгчийн сэтгэхүйд үүсэх сэтгэлгээний загварыг урьдчилан таах.' },
+                { title: 'Тооцоолох', desc: 'Тухайн үүсэх сэтгэлгээний загвар болон хүлээлтийн хэмжээ, нөлөөллийг тооцоолох.' }
+            ],
+            '3. Хүлээлтийг удирдах': [
+                { title: 'Үр дүнтэй нийцүүлэх', desc: 'Хэрэглэгчийн хүлээлтийг бүтээгдэхүүн үйлчилгээгээр бий болох бодит үр дүнтэй харьцуулж, уялдуулах.' },
+                { title: 'Мэдээллийг нийцүүлэх', desc: 'Зөрүүтэй хүлээлт үүсгэхгүй байхын тулд үр дүн болон хүлээлтийг нийцүүлэх тохиромжтой мэдээллийг бэлтгэх.' },
+                { title: 'Мэдээллээр удирдах', desc: 'Бэлтгэсэн нийцүүлэх мэдээллээрээ дамжуулан хэрэглэгчийн хүлээлтийг зөв чиглүүлж удирдах.' }
+            ],
+            '4. Хэрэгцээнд нийцүүлэх': [
+                { title: 'Үр дүн бий болгох', desc: 'Бүтээгдэхүүн, үйлчилгээгээр дамжуулан тодорхой бодит үр дүнг гаргах.' },
+                { title: 'Зохих түвшинд хүргэх', desc: 'Тэрхүү бий болгосон үр дүнгээ "хангагдсан байвал зохих түвшинд" хүртэл нь ахиулах буюу шаардлагад нийцэх хэмжээнд хүргэх.' },
+                { title: 'Нийцүүлэх үйл ажиллагаа', desc: 'Зохих түвшинд хүрсэн үр дүнгээрээ хэрэглэгчийн хүлээлтийг бүрэн хангаж, бодит үйл ажиллагаагаар баталгаажуулах.' }
+            ]
         };
 
         // DOM Elements
-        const screenUpload = document.getElementById('screen-upload');
-        const screenClassifyStep1 = document.getElementById('screen-classify-step1');
-        const screenClassifyStep2 = document.getElementById('screen-classify-step2');
-        const screenClassifyStep3 = document.getElementById('screen-classify-step3');
-        const screenResult = document.getElementById('screen-result');
-        
-        const col1Texts = document.querySelectorAll('.col1-text');
-        const col2Texts = document.querySelectorAll('.col2-text');
-        const progressTexts = document.querySelectorAll('.progress-text');
-        const progressBars = document.querySelectorAll('.progress-bar');
         const fileInput = document.getElementById('fileInput');
-
-        // Listen for file upload
+        const col1Text = document.getElementById('col1-text');
+        const col2Text = document.getElementById('col2-text');
+        const progressText = document.getElementById('progress-text');
+        const progressBar = document.getElementById('progress-bar');
+        
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            // Save filename for export
             originalFileName = file.name.split('.').slice(0, -1).join('.') + "_ангилсан";
 
             const reader = new FileReader();
             reader.onload = (event) => {
                 const data = new Uint8Array(event.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
-                
-                // Read the first sheet
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 
-                // Convert to array of arrays
-                // header: 1 ensures it returns an array of arrays regardless of headers
                 let rawData = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ""});
-                
-                // Filter out completely empty rows
                 excelData = rawData.filter(row => row.some(cell => cell !== ""));
                 
                 if (excelData.length === 0) {
@@ -264,110 +229,104 @@
                     return;
                 }
 
-                // Prepare result data array with headers if needed, but we will construct it dynamically
                 resultData = [];
                 currentIndex = 0;
                 
-                // Add header row for the new columns if the first row seems like a header
-                // We'll just append headers dynamically when exporting to be safe.
-                
-                // Switch screens
-                switchScreen('classify-step1');
+                switchMainScreen('classify');
                 renderCurrentRow();
             };
             reader.readAsArrayBuffer(file);
         });
 
         function renderCurrentRow() {
-            // Check if done
             if (currentIndex >= excelData.length) {
-                switchScreen('result');
+                switchMainScreen('result');
                 return;
             }
 
-            // Reset temporary state for new row
-            currentItemState = {
-                isUseful: "",
-                category4: "",
-                commSystem: ""
-            };
+            // Reset state for new row
+            currentItemState = { isRelevant: "", mainCategory: "", subCategory: "" };
+            showStep('relevance');
 
             const currentRow = excelData[currentIndex];
-            
-            // Handle cases where a row might not have 2 columns
             const col1 = currentRow[0] !== undefined ? String(currentRow[0]).trim() : "-";
             const col2 = currentRow[1] !== undefined ? String(currentRow[1]).trim() : "-";
 
-            // Update text in all steps
-            col1Texts.forEach(el => el.innerText = col1 || "[Хоосон]");
-            col2Texts.forEach(el => el.innerText = col2 || "[Хоосон]");
-
-            // Re-trigger animation for smooth UX on Step 1
-            const card = document.querySelector('#screen-classify-step1 .bg-white');
-            if(card) {
-                card.classList.remove('fade-in');
-                void card.offsetWidth; // trigger reflow
-                card.classList.add('fade-in');
-            }
+            col1Text.innerText = col1 || "[Хоосон]";
+            col2Text.innerText = col2 || "[Хоосон]";
 
             updateProgress();
-            switchScreen('classify-step1');
         }
 
-        window.handleStep1 = function(decision) {
-            currentItemState.isUseful = decision;
-            
-            if (decision === 'Хэрэггүй' || decision === 'Алгассан') {
-                // If not useful, skip step 2 and 3, save and go to next row
-                saveCurrentAndNext();
+        window.handleRelevance = function(isRelevant) {
+            if (isRelevant) {
+                currentItemState.isRelevant = "Тийм";
+                showStep('main');
             } else {
-                // If useful, proceed to step 2
-                switchScreen('classify-step2');
+                currentItemState.isRelevant = "Үгүй";
+                currentItemState.mainCategory = "-";
+                currentItemState.subCategory = "-";
+                saveCurrentAndNext();
             }
         }
 
-        window.handleStep2 = function(category) {
-            currentItemState.category4 = category;
+        window.handleMainCategory = function(category) {
+            currentItemState.mainCategory = category;
             
-            // Generate Step 3 buttons based on selection
-            const container = document.getElementById('step3-dynamic-buttons');
-            container.innerHTML = ''; // Clear previous buttons
+            // Set subcategory title
+            document.getElementById('sub-title-display').innerText = category;
             
-            const subs = subCategories[category] || ['Бусад'];
+            // Generate subcategory buttons
+            const container = document.getElementById('dynamic-sub-buttons');
+            container.innerHTML = ''; 
+            
+            const subs = subCategoriesData[category] || [];
             
             subs.forEach(sub => {
                 const btn = document.createElement('button');
-                btn.className = 'bg-gray-50 hover:bg-gray-100 text-gray-800 border-2 border-gray-200 py-4 px-4 rounded-xl shadow-sm text-sm font-bold transition-transform active:scale-95';
-                btn.innerText = sub;
-                btn.onclick = () => handleStep3(sub);
+                btn.className = 'w-full text-left bg-white border border-gray-300 hover:border-blue-500 py-2 px-3 rounded-xl shadow-sm transition-all active:scale-95 flex flex-col gap-1 flex-shrink-0';
+                btn.innerHTML = `
+                    <div class="font-bold text-gray-800 text-[14px] leading-tight">${sub.title}</div>
+                    <div class="text-[12px] text-gray-600 leading-snug">${sub.desc}</div>
+                `;
+                btn.onclick = () => handleSubCategory(sub.title);
                 container.appendChild(btn);
             });
 
-            // Proceed to step 3
-            switchScreen('classify-step3');
+            showStep('sub');
         }
 
-        window.handleStep3 = function(subCategory) {
-            currentItemState.commSystem = subCategory;
-            // Finished all steps for this row, save and go to next
+        window.handleSubCategory = function(subCategoryName) {
+            currentItemState.subCategory = subCategoryName;
             saveCurrentAndNext();
+        }
+
+        window.goBackToStep = function(stepName) {
+            showStep(stepName);
+        }
+
+        function showStep(stepName) {
+            document.getElementById('step-relevance').classList.remove('active');
+            document.getElementById('step-main').classList.remove('active');
+            document.getElementById('step-sub').classList.remove('active');
+            
+            document.getElementById('step-' + stepName).classList.add('active');
         }
 
         function saveCurrentAndNext() {
             const currentRow = excelData[currentIndex];
             let newRow = [...currentRow];
             
-            // Pad array if needed
+            // Ensure array has at least 2 elements from original
             while(newRow.length < 2) {
                 newRow.push("");
             }
             
-            // Add the 3 new columns
-            newRow[2] = currentItemState.isUseful;
-            newRow[3] = currentItemState.category4;
-            newRow[4] = currentItemState.commSystem;
+            // Add new classification columns
+            newRow[2] = currentItemState.isRelevant;
+            newRow[3] = currentItemState.mainCategory;
+            newRow[4] = currentItemState.subCategory;
             
-            // Save to results
             resultData[currentIndex] = newRow;
             
             currentIndex++;
@@ -377,42 +336,31 @@
         window.undo = function() {
             if (currentIndex > 0) {
                 currentIndex--;
-                // Remove the last categorized item
                 resultData.pop(); 
                 renderCurrentRow();
             }
         }
 
-        window.backToStep1 = function() {
-            switchScreen('classify-step1');
-        }
-
-        window.backToStep2 = function() {
-            switchScreen('classify-step2');
-        }
-
         function updateProgress() {
             const total = excelData.length;
             const percent = ((currentIndex) / total) * 100;
+            const text = `${currentIndex + 1} / ${total}`;
             
-            progressTexts.forEach(el => el.innerText = `${currentIndex + 1} / ${total}`);
-            progressBars.forEach(el => el.style.width = `${percent}%`);
+            progressText.innerText = text;
+            progressBar.style.width = `${percent}%`;
         }
 
         window.downloadExcel = function() {
-            // Add Header Row for clarity
-            const headerRow = ["Багана 1", "Багана 2", "Хэрэгтэй эсэх", "Үндсэн 4 ангилал", "Нарийвчилсан дэд ангилал"];
+            const headerRow = ["Багана 1", "Багана 2", "Хамаарал", "Үндсэн ангилал", "Дэд ангилал"];
             const finalDataToExport = [headerRow, ...resultData];
 
             const worksheet = XLSX.utils.aoa_to_sheet(finalDataToExport);
-            
-            // Set column widths for better readability
             worksheet['!cols'] = [
-                { wch: 40 }, // Col 1
+                { wch: 45 }, // Col 1
                 { wch: 30 }, // Col 2
-                { wch: 15 }, // Useful?
-                { wch: 25 }, // Category
-                { wch: 25 }  // Comm System
+                { wch: 15 }, // Rel
+                { wch: 25 }, // Main
+                { wch: 25 }  // Sub
             ];
 
             const workbook = XLSX.utils.book_new();
@@ -421,25 +369,18 @@
             XLSX.writeFile(workbook, `${originalFileName}.xlsx`);
         }
 
-        function switchScreen(screenName) {
-            const screens = [
-                {id: 'screen-upload', name: 'upload'},
-                {id: 'screen-classify-step1', name: 'classify-step1'},
-                {id: 'screen-classify-step2', name: 'classify-step2'},
-                {id: 'screen-classify-step3', name: 'classify-step3'},
-                {id: 'screen-result', name: 'result'}
-            ];
+        function switchMainScreen(screenName) {
+            document.getElementById('screen-upload').classList.add('hidden');
+            document.getElementById('screen-upload').classList.remove('flex');
+            
+            document.getElementById('screen-classify').classList.add('hidden');
+            document.getElementById('screen-classify').classList.remove('flex');
+            
+            document.getElementById('screen-result').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('flex');
 
-            screens.forEach(s => {
-                const el = document.getElementById(s.id);
-                if (s.name === screenName) {
-                    el.classList.remove('hidden');
-                    el.classList.add('flex');
-                } else {
-                    el.classList.add('hidden');
-                    el.classList.remove('flex');
-                }
-            });
+            document.getElementById('screen-' + screenName).classList.remove('hidden');
+            document.getElementById('screen-' + screenName).classList.add('flex');
         }
 
         window.resetApp = function() {
@@ -447,7 +388,7 @@
             excelData = [];
             resultData = [];
             currentIndex = 0;
-            switchScreen('upload');
+            switchMainScreen('upload');
         }
     </script>
 </body>
